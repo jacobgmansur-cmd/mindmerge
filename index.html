@@ -1,0 +1,1191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>MindMerge</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  :root {
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: #10071d;
+    color: #f9fafb;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: radial-gradient(circle at top, #171235 0%, #150828 35%, #23143f 100%);
+    display: flex;
+    align-items: stretch;
+    justify-content: center;
+  }
+
+  .app {
+    flex: 1;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 16px 16px 24px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
+  /* HEADER */
+
+  .page-header {
+    margin-bottom: 14px;
+    display: flex;
+    justify-content: center;
+  }
+
+  .header-inner {
+    padding: 10px 26px;
+    border-radius: 999px;
+    background: radial-gradient(circle at top, rgba(17,24,39,0.95), rgba(55,48,163,0.96));
+    box-shadow: 0 22px 60px rgba(0,0,0,0.7);
+    text-align: center;
+  }
+
+  .game-title {
+    font-size: 2.7rem;
+    font-weight: 900;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+  }
+
+  .game-title span {
+    color: #c4b5fd;
+  }
+
+  .game-subtitle {
+    margin-top: 3px;
+    font-size: 0.95rem; /* a bit smaller so it fits better */
+    color: #e0e7ff;
+    font-weight: 700;
+  }
+
+  /* SCREENS */
+
+  .screen {
+    display: none;
+    flex: 1;
+  }
+  .screen.active {
+    display: flex;
+  }
+
+  .screen-inner {
+    flex: 1;
+    background: rgba(8,7,20,0.98);
+    border-radius: 24px;
+    border: 1px solid rgba(148,163,184,0.3);
+    box-shadow: 0 28px 80px rgba(0,0,0,0.7);
+    padding: 22px 24px 20px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* GENERIC CONTROLS */
+
+  .text-input,
+  select {
+    padding: 12px 14px;
+    border-radius: 14px;
+    border: 1.2px solid #4c1d95;
+    background: #15121f;
+    color: #f9fafb;
+    font-size: 1rem;
+    outline: none;
+    box-sizing: border-box;
+    width: 100%;
+  }
+  .text-input:focus,
+  select:focus {
+    border-color: #c4b5fd;
+    box-shadow: 0 0 0 1px rgba(196,181,253,0.7);
+  }
+
+  .btn {
+    padding: 11px 16px;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    background: #7c3aed;
+    color: white;
+    font-weight: 700;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background 0.15s ease, transform 0.05s ease, box-shadow 0.15s ease;
+    white-space: nowrap;
+  }
+  .btn:hover:not(:disabled) {
+    background: #8b5cf6;
+    transform: translateY(-1px);
+    box-shadow: 0 10px 30px rgba(124,58,237,0.5);
+  }
+  .btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    box-shadow: none;
+  }
+  .btn-secondary {
+    background: transparent;
+    border-color: #6b21a8;
+    color: #e0e7ff;
+  }
+  .btn-secondary:hover:not(:disabled) {
+    background: #111827;
+  }
+  .btn-full {
+    width: 100%;
+  }
+
+  .btn-ghost {
+    background: transparent;
+    border-color: transparent;
+    color: #e5e7eb;
+    font-size: 0.9rem;
+    padding: 6px 10px;
+  }
+  .btn-ghost:hover {
+    background: rgba(15,23,42,0.7);
+  }
+
+  .small-note {
+    font-size: 0.85rem;
+    color: #c4b5fd;
+    margin-top: 4px;
+  }
+
+  /* LEAVE BUTTON BUBBLE */
+
+  .leave-pill {
+    padding: 10px 22px;
+    border-radius: 999px;
+    border: 1px solid rgba(148,163,184,0.8);
+    background: #15121f;
+    color: #f9fafb;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s ease, transform 0.05s ease, box-shadow 0.15s ease;
+  }
+  .leave-pill:hover {
+    background: #111827;
+    transform: translateY(-1px);
+    box-shadow: 0 10px 22px rgba(15,23,42,0.8);
+  }
+
+  /* SETUP SCREEN */
+
+  .title-main {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .title-buttons {
+    max-width: 420px;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .title-buttons .btn {
+    font-size: 1.1rem;
+    padding: 13px 18px;
+  }
+
+  .setup-panel {
+    flex: 1;
+    display: none;
+    align-items: center;
+    justify-content: center;
+  }
+  .setup-panel.active {
+    display: flex;
+  }
+
+  .setup-card {
+    max-width: 420px;
+    width: 100%;
+  }
+
+  .field-column {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .field-row {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .field-row label {
+    font-size: 0.95rem;
+    color: #e5e7eb;
+  }
+
+  #setupError,
+  #setupErrorJoin {
+    margin-top: 6px;
+    font-size: 0.9rem;
+    color: #fecaca;
+  }
+
+  /* GAME SCREEN – LOBBY & PLAY */
+
+  .game-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .room-code-large {
+    font-size: 2.1rem;
+    font-weight: 900;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    text-align: center;
+    margin-bottom: 10px;
+    color: #e0e7ff;
+  }
+
+  .host-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    align-items: center;
+    margin-bottom: 6px;
+  }
+  .host-controls .small-note {
+    margin-top: 0;
+    font-size: 0.8rem;
+  }
+
+  .game-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  /* Lobby: player tiles centered */
+
+  .players-lobby {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    justify-content: center;
+  }
+
+  .player-row {
+    background: #1e1b4b;
+    border-radius: 20px;
+    border: 1px solid rgba(148,163,184,0.7);
+    padding: 12px 20px;
+    min-width: 210px;
+    max-width: 260px;
+    box-sizing: border-box;
+    animation: popIn 0.25s ease-out;
+  }
+
+  .player-name {
+    font-size: 1.35rem;
+    font-weight: 800;
+    text-align: center;
+  }
+
+  .player-name span.star {
+    margin-left: 6px;
+    color: #facc15;
+  }
+
+  /* Playing: previous words row */
+
+  .prev-words-section {
+    display: none;
+    margin-top: 15vh;
+  }
+
+  .prev-words-row {
+    display: flex;
+    flex-wrap: wrap; /* wraps only if needed */
+    gap: 14px;
+    justify-content: center;
+  }
+
+  .prev-word-card {
+    flex: 1 1 150px;
+    min-width: 170px;
+    max-width: 260px;
+    background: #15121f;
+    border-radius: 22px;
+    border: 1px solid rgba(148,163,184,0.7);
+    padding: 10px 16px;
+    box-sizing: border-box;
+  }
+  .prev-word-label {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: #c4b5fd;
+    margin-bottom: 4px;
+    text-align: center;
+  }
+  .prev-word {
+    font-family: "Georgia", serif;
+    font-size: 1.8rem;
+    font-weight: 700;
+    min-height: 1.6em;
+    text-align: center;
+  }
+  .prev-word.empty {
+    color: #6b7280;
+    font-style: italic;
+  }
+
+  /* Input bubble at bottom center */
+
+  .input-bubble-wrapper {
+    margin-top: auto;
+    display: none;
+    justify-content: center;
+  }
+  .input-bubble {
+    background: #15121f;
+    border-radius: 999px;
+    border: 1px solid rgba(148,163,184,0.7);
+    padding: 8px 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    max-width: 540px;
+    width: 100%;
+    box-shadow: 0 16px 40px rgba(15,23,42,0.9);
+  }
+
+  .round-pill {
+    margin-bottom: 6px;
+    text-align: center;
+  }
+  .round-pill-inner {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(52,211,153,0.8);
+    background: rgba(6,78,59,0.6);
+    font-size: 0.8rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #a7f3d0;
+  }
+
+  #yourInput {
+    flex: 1;
+    margin-top: 0;
+    border-radius: 999px;
+    border: none;
+    background: transparent; /* no darker inner layer */
+    padding: 9px 12px;
+    color: #f9fafb;
+    box-shadow: none;
+  }
+
+  #lockBtn {
+    flex-shrink: 0;
+  }
+
+  #gameMessage {
+    margin-top: 10px;
+    font-size: 0.95rem;
+    text-align: center;
+  }
+  #gameError {
+    margin-top: 4px;
+    font-size: 0.9rem;
+    color: #fecaca;
+    text-align: center;
+  }
+
+  .game-footer {
+    margin-top: 8px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 0.8rem;
+    color: #e5e7eb;
+    gap: 10px;
+  }
+
+  .room-code-small {
+    font-family: monospace;
+    opacity: 0.8;
+  }
+
+  /* WIN SCREEN */
+
+  .win-layout {
+    flex: 1;
+    display: grid;
+    grid-template-columns: minmax(0, 1.6fr) minmax(0, 2.4fr);
+    gap: 18px;
+  }
+
+  @media (max-width: 900px) {
+    .win-layout {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .win-word-main {
+    font-family: "Georgia", serif;
+    font-weight: 800;
+    font-size: 2.4rem;
+    text-transform: uppercase;
+    color: #f9fafb;
+    line-height: 1.1;
+    min-height: 2.6em;
+  }
+
+  .win-note {
+    font-size: 0.95rem;
+    color: #e0e7ff;
+    margin-top: 10px;
+  }
+
+  .win-log-body {
+    max-height: 260px;
+    overflow-y: auto;
+    background: #050415;
+    border: 1px solid rgba(148,163,184,0.5);
+    padding: 10px 12px;
+    border-radius: 12px;
+    font-size: 0.95rem;
+  }
+
+  .round-block {
+    padding: 8px 10px;
+    border-radius: 10px;
+    border: 1px solid #1f2937;
+    background: #0b1120;
+    margin-bottom: 8px;
+  }
+
+  .round-title {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: #c4b5fd;
+    margin-bottom: 4px;
+  }
+
+  .round-words {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .history-chip {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: #111827;
+    border: 1px solid rgba(148,163,184,0.6);
+    font-family: "Georgia", serif;
+    font-size: 0.9rem;
+    letter-spacing: 0.05em;
+  }
+
+  .win-actions {
+    margin-top: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  /* Animations */
+
+  @keyframes popIn {
+    0% { transform: scale(0.8); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="page-header">
+    <div class="header-inner">
+      <div class="game-title"><span>MINDMERGE</span></div>
+      <div class="game-subtitle">Connect your minds and land on the same word.</div>
+    </div>
+  </div>
+
+  <!-- SCREEN: SETUP (TITLE + HOST/JOIN PANELS) -->
+  <div id="screenSetup" class="screen active">
+    <div class="screen-inner">
+      <div class="title-main" id="setupMain">
+        <div class="title-buttons">
+          <button class="btn btn-full" id="btnGoHost">Host a room</button>
+          <button class="btn btn-full btn-secondary" id="btnGoJoin">Join a room</button>
+        </div>
+      </div>
+
+      <!-- host form -->
+      <div id="setupHostPanel" class="setup-panel">
+        <div class="setup-card">
+          <div class="field-column">
+            <div class="field-row">
+              <label for="hostNameInput">Your name</label>
+              <input id="hostNameInput" class="text-input" placeholder="Enter your name" />
+            </div>
+            <div class="field-row">
+              <label for="hostPlayerCount">Number of players</label>
+              <select id="hostPlayerCount">
+                <option value="2">2 players</option>
+                <option value="3">3 players</option>
+                <option value="4">4 players</option>
+              </select>
+            </div>
+            <button class="btn btn-full" id="hostCreateBtn">Create room</button>
+            <button class="btn-ghost" id="hostBackBtn">← Back</button>
+            <div id="setupError"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- join form -->
+      <div id="setupJoinPanel" class="setup-panel">
+        <div class="setup-card">
+          <div class="field-column">
+            <div class="field-row">
+              <label for="joinNameInput">Your name</label>
+              <input id="joinNameInput" class="text-input" placeholder="Enter your name" />
+            </div>
+            <div class="field-row">
+              <label for="joinRoomCode">Room code</label>
+              <input id="joinRoomCode" class="text-input" placeholder="Enter code (e.g., ABC12)" maxlength="8" />
+            </div>
+            <button class="btn btn-full" id="joinJoinBtn">Join room</button>
+            <button class="btn-ghost" id="joinBackBtn">← Back</button>
+            <div id="setupErrorJoin"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN: GAME -->
+  <div id="screenGame" class="screen">
+    <div class="screen-inner">
+      <div class="game-main">
+        <div class="room-code-large" id="roomCodeDisplay"></div>
+
+        <div class="host-controls" id="hostControls" style="display:none">
+          <div class="small-note" id="hostHint"></div>
+        </div>
+
+        <div class="game-body">
+          <!-- players (lobby only) -->
+          <div id="playersSection">
+            <div class="players-lobby" id="playersList"></div>
+          </div>
+
+          <!-- previous words (playing only; bubbles in upper-middle) -->
+          <div id="prevWordsSection" class="prev-words-section">
+            <div class="prev-words-row" id="prevWordsRow"></div>
+          </div>
+
+          <!-- input bubble (playing only) -->
+          <div class="input-bubble-wrapper" id="yourArea">
+            <div style="width:100%; max-width:560px;">
+              <div class="round-pill">
+                <span class="round-pill-inner">
+                  Round <span id="roundDisplayBubble"></span>
+                </span>
+              </div>
+              <div class="input-bubble">
+                <input id="yourInput" type="password" maxlength="20" autocomplete="off" />
+                <button class="btn" id="lockBtn">Lock In</button>
+              </div>
+            </div>
+          </div>
+
+          <div id="gameMessage"></div>
+          <div id="gameError"></div>
+
+          <div class="game-footer">
+            <button class="leave-pill" id="leaveRoomBtn">← Leave room & return to title</button>
+            <div class="room-code-small" id="roomCodeSmall"></div>
+          </div>
+
+          <!-- big Start Game button at bottom center (lobby host only) -->
+          <div id="startGameWrapper" style="margin-top:10px; text-align:center; display:none;">
+            <button class="btn" id="startGameBtn" style="padding:12px 40px; font-size:1.1rem;">Start Game</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN: WIN -->
+  <div id="screenWin" class="screen">
+    <div class="screen-inner">
+      <div class="win-layout">
+        <div>
+          <div class="win-word-main" id="winWord"></div>
+          <div class="win-note">
+            Everyone landed on the same word. Below is a round-by-round timeline of what each player said.
+          </div>
+
+          <div class="win-actions" id="winActionsHost" style="display:none">
+            <button class="btn btn-full" id="winStartNextBtn">Start next round (host)</button>
+            <button class="btn btn-secondary btn-full" id="winLeaveRoomBtnHost">Leave room & return to title</button>
+          </div>
+          <div class="win-actions" id="winActionsGuest" style="display:none">
+            <div class="small-note">
+              Waiting for the host to start the next round, or you can leave the room.
+            </div>
+            <button class="btn btn-secondary btn-full" id="winLeaveRoomBtnGuest">Leave room & return to title</button>
+          </div>
+        </div>
+
+        <div>
+          <div class="win-log-body" id="winLogBody"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  /* ---------- Screen helpers ---------- */
+
+  const screenSetup = document.getElementById("screenSetup");
+  const screenGame  = document.getElementById("screenGame");
+  const screenWin   = document.getElementById("screenWin");
+
+  function showScreen(which) {
+    screenSetup.classList.remove("active");
+    screenGame.classList.remove("active");
+    screenWin.classList.remove("active");
+    if (which === "setup") screenSetup.classList.add("active");
+    if (which === "game")  screenGame.classList.add("active");
+    if (which === "win")   screenWin.classList.add("active");
+  }
+
+  /* ---------- Title: main / host / join panels ---------- */
+
+  const setupMain      = document.getElementById("setupMain");
+  const setupHostPanel = document.getElementById("setupHostPanel");
+  const setupJoinPanel = document.getElementById("setupJoinPanel");
+
+  const btnGoHost  = document.getElementById("btnGoHost");
+  const btnGoJoin  = document.getElementById("btnGoJoin");
+  const hostBackBtn= document.getElementById("hostBackBtn");
+  const joinBackBtn= document.getElementById("joinBackBtn");
+
+  const hostNameInput   = document.getElementById("hostNameInput");
+  const hostPlayerCount = document.getElementById("hostPlayerCount");
+  const hostCreateBtn   = document.getElementById("hostCreateBtn");
+  const setupError      = document.getElementById("setupError");
+
+  const joinNameInput   = document.getElementById("joinNameInput");
+  const joinRoomCode    = document.getElementById("joinRoomCode");
+  const joinJoinBtn     = document.getElementById("joinJoinBtn");
+  const setupErrorJoin  = document.getElementById("setupErrorJoin");
+
+  function showSetupMain() {
+    setupMain.style.display      = "flex";
+    setupHostPanel.classList.remove("active");
+    setupJoinPanel.classList.remove("active");
+    setupError.textContent      = "";
+    setupErrorJoin.textContent  = "";
+  }
+  function showHostPanel() {
+    setupMain.style.display      = "none";
+    setupHostPanel.classList.add("active");
+    setupJoinPanel.classList.remove("active");
+  }
+  function showJoinPanel() {
+    setupMain.style.display      = "none";
+    setupHostPanel.classList.remove("active");
+    setupJoinPanel.classList.add("active");
+  }
+
+  btnGoHost.addEventListener("click", showHostPanel);
+  btnGoJoin.addEventListener("click", showJoinPanel);
+  hostBackBtn.addEventListener("click", showSetupMain);
+  joinBackBtn.addEventListener("click", showSetupMain);
+
+  /* ---------- Game screen refs ---------- */
+
+  const roomCodeDisplay    = document.getElementById("roomCodeDisplay");
+  const roomCodeSmall      = document.getElementById("roomCodeSmall");
+  const roundDisplayBubble = document.getElementById("roundDisplayBubble");
+  const playersSection     = document.getElementById("playersSection");
+  const playersList        = document.getElementById("playersList");
+  const prevWordsSection   = document.getElementById("prevWordsSection");
+  const prevWordsRow       = document.getElementById("prevWordsRow");
+  const yourArea           = document.getElementById("yourArea");
+  const yourInput          = document.getElementById("yourInput");
+  const lockBtn            = document.getElementById("lockBtn");
+  const gameMessage        = document.getElementById("gameMessage");
+  const gameError          = document.getElementById("gameError");
+  const hostControls       = document.getElementById("hostControls");
+  const hostHint           = document.getElementById("hostHint");
+  const leaveRoomBtn       = document.getElementById("leaveRoomBtn");
+  const startGameWrapper   = document.getElementById("startGameWrapper");
+  const startGameBtn       = document.getElementById("startGameBtn");
+
+  /* ---------- Win screen refs ---------- */
+
+  const winWordEl       = document.getElementById("winWord");
+  const winLogBody      = document.getElementById("winLogBody");
+  const winActionsHost  = document.getElementById("winActionsHost");
+  const winActionsGuest = document.getElementById("winActionsGuest");
+  const winStartNextBtn = document.getElementById("winStartNextBtn");
+  const winLeaveHostBtn = document.getElementById("winLeaveRoomBtnHost");
+  const winLeaveGuestBtn= document.getElementById("winLeaveRoomBtnGuest");
+
+  /* ---------- WebSocket + state ---------- */
+
+  let socket;
+  let clientId = null;
+  let youId    = null;
+  let currentRoom = null;
+  let roundHistory = [];   // [{round, words:[{id,word}]}]
+  let localRound   = 0;
+  let inWinPhase   = false;
+  let lastRoundWords = null; // previous round's words for bubbles
+
+  function setGameMessage(text) {
+    gameMessage.textContent = text || "";
+  }
+  function setGameError(text) {
+    gameError.textContent = text || "";
+  }
+
+  function ensureSocket() {
+    if (socket && socket.readyState === WebSocket.OPEN) return;
+    const protocol = location.protocol === "https:" ? "wss://" : "ws://";
+    socket = new WebSocket(protocol + location.host);
+
+    socket.addEventListener("message", (event) => {
+      const data = JSON.parse(event.data);
+      handleServerMessage(data);
+    });
+
+    socket.addEventListener("close", () => {
+      setGameMessage("Disconnected from server. Refresh to reconnect.");
+    });
+  }
+
+  function sendToServer(payload) {
+    ensureSocket();
+    if (!socket || socket.readyState !== WebSocket.OPEN) {
+      setGameError("Not connected yet. Wait a moment then try again.");
+      return;
+    }
+    socket.send(JSON.stringify(payload));
+  }
+
+  /* ---------- Win history ---------- */
+
+  function renderWinHistoryTimeline() {
+    winLogBody.innerHTML = "";
+    if (!currentRoom || roundHistory.length === 0) {
+      const div = document.createElement("div");
+      div.className = "small-note";
+      div.textContent = "No rounds recorded.";
+      winLogBody.appendChild(div);
+      return;
+    }
+
+    roundHistory.forEach((entry) => {
+      const block = document.createElement("div");
+      block.className = "round-block";
+
+      const title = document.createElement("div");
+      title.className = "round-title";
+      title.textContent = `Round ${entry.round}`;
+      block.appendChild(title);
+
+      const wordsDiv = document.createElement("div");
+      wordsDiv.className = "round-words";
+
+      currentRoom.players.forEach((p) => {
+        const w = entry.words.find((x) => x.id === p.id);
+        if (!w) return;
+        const chip = document.createElement("span");
+        chip.className = "history-chip";
+        chip.textContent = `${p.name.toUpperCase()}: ${w.word.toUpperCase()}`;
+        wordsDiv.appendChild(chip);
+      });
+
+      block.appendChild(wordsDiv);
+      winLogBody.appendChild(block);
+    });
+  }
+
+  /* ---------- Render previous words using lastRoundWords ---------- */
+
+  function renderPrevWords(room) {
+    if (!room || room.status !== "playing") {
+      prevWordsSection.style.display = "none";
+      prevWordsRow.innerHTML = "";
+      return;
+    }
+
+    prevWordsSection.style.display = "block";
+    prevWordsRow.innerHTML = "";
+
+    room.players.forEach((p, idx) => {
+      const card = document.createElement("div");
+      card.className = "prev-word-card";
+
+      const lbl = document.createElement("div");
+      lbl.className = "prev-word-label";
+      lbl.textContent = p.name || `Player ${idx + 1}`;
+
+      const w = document.createElement("div");
+      w.className = "prev-word";
+
+      let word = null;
+      if (lastRoundWords && Array.isArray(lastRoundWords)) {
+        const entry = lastRoundWords.find(x => x.id === p.id);
+        if (entry) word = entry.word;
+      }
+
+      if (!word) {
+        w.classList.add("empty");
+        w.textContent = "None yet";
+      } else {
+        w.textContent = word.toUpperCase();
+      }
+
+      card.appendChild(lbl);
+      card.appendChild(w);
+      prevWordsRow.appendChild(card);
+    });
+  }
+
+  /* ---------- Render players (lobby) ---------- */
+
+  function renderPlayers(room) {
+    playersList.innerHTML = "";
+    if (!room) return;
+
+    room.players.forEach((p) => {
+      const div = document.createElement("div");
+      div.className = "player-row";
+
+      const nameEl = document.createElement("div");
+      nameEl.className = "player-name";
+      nameEl.textContent = p.name || `Player ${p.id}`;
+      if (p.id === youId) {
+        const star = document.createElement("span");
+        star.className = "star";
+        star.textContent = " ★";
+        nameEl.appendChild(star);
+      }
+      div.appendChild(nameEl);
+
+      playersList.appendChild(div);
+    });
+  }
+
+  /* ---------- Render room ---------- */
+
+  function renderRoom(room) {
+    currentRoom = room;
+    if (!room) {
+      playersList.innerHTML = "";
+      prevWordsSection.style.display = "none";
+      yourArea.style.display = "none";
+      hostControls.style.display = "none";
+      startGameWrapper.style.display = "none";
+      roomCodeDisplay.textContent = "";
+      roomCodeSmall.textContent = "";
+      return;
+    }
+
+    const isHost = youId === room.hostId;
+
+    if (room.status === "lobby") {
+      roomCodeDisplay.textContent = room.code;
+      playersSection.style.display = "";
+      renderPlayers(room);
+      prevWordsSection.style.display = "none";
+      yourArea.style.display = "none";
+
+      hostControls.style.display = "";
+      const remaining = room.targetPlayers - room.players.length;
+      if (remaining > 0) {
+        hostHint.textContent = isHost
+          ? `Waiting for ${remaining} more player${remaining === 1 ? "" : "s"} to join.`
+          : "";
+        startGameWrapper.style.display = "none";
+      } else {
+        hostHint.textContent = isHost
+          ? "Everyone is here. Start when you’re ready."
+          : "Waiting for the host to start the game.";
+        startGameWrapper.style.display = isHost ? "block" : "none";
+      }
+
+      roomCodeSmall.textContent = "";
+    }
+
+    if (room.status === "playing") {
+      roomCodeDisplay.textContent = "";
+      playersSection.style.display = "none";
+      renderPrevWords(room);   // uses lastRoundWords or "None yet"
+
+      const youInRoom = room.players.some((p) => p.id === youId);
+      if (youInRoom) {
+        yourArea.style.display = "flex";
+        const me = room.players.find((p) => p.id === youId);
+        if (me && me.locked) {
+          yourInput.disabled = true;
+          lockBtn.disabled   = true;
+        } else {
+          yourInput.disabled = false;
+          lockBtn.disabled   = false;
+        }
+      } else {
+        yourArea.style.display = "none";
+      }
+
+      hostControls.style.display = "none";
+      startGameWrapper.style.display = "none";
+      roomCodeSmall.textContent = `Room: ${room.code}`;
+    }
+
+    if (room.status === "finished") {
+      renderPrevWords(room);
+      yourArea.style.display = "none";
+      roomCodeDisplay.textContent = "";
+      roomCodeSmall.textContent   = `Room: ${room.code}`;
+    }
+
+    roundDisplayBubble.textContent = room.round || 1;
+  }
+
+  /* ---------- Handle server messages ---------- */
+
+  function handleServerMessage(data) {
+    const type = data.type;
+
+    if (type === "welcome") {
+      clientId = data.clientId;
+      return;
+    }
+
+    if (type === "error") {
+      setGameError(data.message || "");
+      return;
+    }
+
+    if (type === "room_created") {
+      youId = data.youId;
+      setupError.textContent     = "";
+      setupErrorJoin.textContent = "";
+      roundHistory = [];
+      localRound   = 0;
+      inWinPhase   = false;
+      lastRoundWords = null;
+      showScreen("game");
+      renderRoom(data.room);
+      setGameMessage("");
+      return;
+    }
+
+    if (type === "joined_room") {
+      youId = data.youId;
+      setupError.textContent     = "";
+      setupErrorJoin.textContent = "";
+      roundHistory = [];
+      localRound   = 0;
+      inWinPhase   = false;
+      lastRoundWords = null;
+      showScreen("game");
+      renderRoom(data.room);
+      setGameMessage("");
+      return;
+    }
+
+    if (type === "room_update") {
+      const prevStatus = currentRoom ? currentRoom.status : null;
+      renderRoom(data.room);
+
+      if (prevStatus === "finished" && data.room.status === "playing" && inWinPhase) {
+        inWinPhase   = false;
+        // keep lastRoundWords so bubbles show previous round
+        localRound   = 0;
+        showScreen("game");
+        setGameMessage("New round started. Think of a fresh word and lock in.");
+        yourInput.value    = "";
+        yourInput.disabled = false;
+        lockBtn.disabled   = false;
+      } else {
+        const room = data.room;
+        const me   = room.players.find((p) => p.id === youId);
+        if (room.status === "playing") {
+          setGameMessage(me && me.locked
+            ? "You locked in. Waiting for others…"
+            : "Think of a word and lock in.");
+        } else {
+          setGameMessage("");
+        }
+      }
+      return;
+    }
+
+    if (type === "round_result") {
+      const room = data.room;
+      localRound += 1;
+
+      if (data.match) {
+        const winningWord = data.word || "";
+        const words = room.players.map((p) => ({
+          id: p.id,
+          word: winningWord
+        }));
+        roundHistory.push({ round: localRound, words });
+        lastRoundWords = words;  // still used for bubbles if needed
+
+        inWinPhase = true;
+        winWordEl.textContent = winningWord.toUpperCase();
+        renderWinHistoryTimeline();
+
+        const isHost = youId === room.hostId;
+        if (isHost) {
+          winActionsHost.style.display  = "";
+          winActionsGuest.style.display = "none";
+        } else {
+          winActionsHost.style.display  = "none";
+          winActionsGuest.style.display = "";
+        }
+
+        showScreen("win");
+      } else {
+        const words = (data.words || []).map((w) => ({
+          id: w.id,
+          word: w.word
+        }));
+        roundHistory.push({ round: localRound, words });
+        lastRoundWords = words;   // *** key: store for bubble display
+
+        renderRoom(room);         // repaint playing state; bubbles use lastRoundWords
+        setGameMessage("");       // no text line, bubbles are the reveal
+        yourInput.disabled = false;
+        lockBtn.disabled   = false;
+        yourInput.value    = "";
+        yourInput.focus();
+      }
+      return;
+    }
+
+    if (type === "left_room") {
+      currentRoom   = null;
+      roundHistory  = [];
+      localRound    = 0;
+      inWinPhase    = false;
+      lastRoundWords = null;
+      setGameMessage("");
+      setGameError("");
+      showSetupMain();
+      showScreen("setup");
+      return;
+    }
+  }
+
+  /* ---------- Setup actions ---------- */
+
+  hostCreateBtn.addEventListener("click", () => {
+    setupError.textContent = "";
+    const name  = hostNameInput.value.trim();
+    const count = Number(hostPlayerCount.value);
+    if (!name) {
+      setupError.textContent = "Please enter your name.";
+      return;
+    }
+    ensureSocket();
+    sendToServer({ type: "set_name", name: name.slice(0,24) });
+    sendToServer({ type: "create_room", playerCount: count });
+  });
+
+  joinJoinBtn.addEventListener("click", () => {
+    setupErrorJoin.textContent = "";
+    const name = joinNameInput.value.trim();
+    const code = joinRoomCode.value.trim().toUpperCase();
+    if (!name) {
+      setupErrorJoin.textContent = "Please enter your name.";
+      return;
+    }
+    if (!code) {
+      setupErrorJoin.textContent = "Please enter a room code.";
+      return;
+    }
+    ensureSocket();
+    sendToServer({ type: "set_name", name: name.slice(0,24) });
+    sendToServer({ type: "join_room", roomCode: code });
+  });
+
+  /* ---------- Game actions ---------- */
+
+  startGameBtn.addEventListener("click", () => {
+    if (!currentRoom) return;
+    sendToServer({ type: "start_game" });
+  });
+
+  lockBtn.addEventListener("click", () => {
+    if (!currentRoom || currentRoom.status !== "playing") return;
+    const w = yourInput.value.trim();
+    if (!w) return;
+    const limited = w.slice(0, 20);
+    sendToServer({ type: "lock_word", word: limited });
+    yourInput.value    = "";
+    yourInput.blur();
+    yourInput.disabled = true;
+    lockBtn.disabled   = true;
+  });
+
+  yourInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      lockBtn.click();
+    }
+  });
+
+  leaveRoomBtn.addEventListener("click", () => {
+    sendToServer({ type: "leave_room" });
+  });
+
+  /* ---------- Win actions ---------- */
+
+  winStartNextBtn.addEventListener("click", () => {
+    if (!currentRoom) return;
+    sendToServer({ type: "play_again" });
+  });
+
+  winLeaveHostBtn.addEventListener("click", () => {
+    sendToServer({ type: "leave_room" });
+  });
+
+  winLeaveGuestBtn.addEventListener("click", () => {
+    sendToServer({ type: "leave_room" });
+  });
+
+  // initial socket connect
+  ensureSocket();
+</script>
+</body>
+</html>
