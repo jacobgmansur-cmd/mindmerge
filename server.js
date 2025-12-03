@@ -3,62 +3,64 @@ const http = require("http");
 const WebSocket = require("ws");
 const path = require("path");
 
+// ---------------------- EXPRESS + STATIC ----------------------
 const app = express();
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
-// Serve static files (index.html, etc.) from this folder
 app.use(express.static(__dirname));
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "index.html"));
 });
 
-// ---- In-memory state ----
+// ---------------------- SERVER STATE --------------------------
 
 let nextClientId = 1;
-
-const clients = new Map(); // ws -> { id, name, roomCode }
-const rooms = new Map();   // code -> room
+const clients = new Map();   // Map<ws, client>
+const rooms   = new Map();   // Map<code, room>
 
 // room = {
 //   code,
 //   hostId,
-//   targetPlayers: 2..4,
-//   players: [ { id, name, client, lockedWord, lastWord } ],
+//   status: "lobby" | "playing" | "finished",
 //   round,
-//   status: "lobby" | "playing" | "finished"
+//   targetPlayers: number | null (optional),
+//   players: [{ id, name, client, lockedWord, lastWord }]
 // };
 
+// ---------------------- UTILITIES -----------------------------
+
 function send(ws, payload) {
+  if (!ws) return;
   if (ws.readyState === WebSocket.OPEN) {
     ws.send(JSON.stringify(payload));
   }
 }
 
-function broadcastRoom(room, payload) {
-  room.players.forEach((p) => {
+function broadcast(room, payload) {
+  for (const p of room.players) {
     send(p.client.ws, payload);
-  });
+  }
 }
 
 function serializeRoom(room) {
   return {
     code: room.code,
     hostId: room.hostId,
-    targetPlayers: room.targetPlayers,
-    round: room.round,
     status: room.status,
+    round: room.round,
+    targetPlayers: room.targetPlayers ?? room.players.length,
     players: room.players.map((p) => ({
       id: p.id,
       name: p.name,
       locked: !!p.lockedWord,
-      lastWord: p.lastWord
+      lastWord: p.lastWord || null
     }))
   };
 }
 
 function broadcastRoomUpdate(room) {
-  broadcastRoom(room, {
+  broadcast(room, {
     type: "room_update",
     room: serializeRoom(room)
   });
@@ -66,121 +68,50 @@ function broadcastRoomUpdate(room) {
 
 function generateRoomCode() {
   const chars = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
-  let code;
-  do {
+  let code = "";
+  while (!code || rooms.has(code)) {
     code = "";
     for (let i = 0; i < 5; i++) {
       code += chars[Math.floor(Math.random() * chars.length)];
     }
-  } while (rooms.has(code));
+  }
   return code;
 }
 
-function addClientToRoom(client, room) {
-  const existing = room.players.find((p) => p.id === client.id);
-  if (existing) return;
+function getRoomFor(client) {
+  return client.roomCode ? rooms.get(client.roomCode) || null : null;
+}
 
-  const player = {
+function addClientToRoom(client, room) {
+  const exists = room.players.find(p => p.id === client.id);
+  if (exists) return;
+
+  room.players.push({
     id: client.id,
-    name: client.name || `Player ${room.players.length + 1}`,
-    client,
+    name: client.name || "Player",
+    client,            // client has ws attached
     lockedWord: null,
     lastWord: null
-  };
-  room.players.push(player);
+  });
+
   client.roomCode = room.code;
-
-  // Room stays in "lobby" until host presses Start Game
-  broadcastRoomUpdate(room);
-}
-
-function normalizeWord(w) {
-  return w.trim().toLowerCase();
-}
-
-function resolveRound(room) {
-  const words = room.players.map((p) => p.lockedWord);
-  const normalized = words.map(normalizeWord);
-  const allSame = normalized.every((w) => w === normalized[0]);
-
-  // Move lockedWord -> lastWord and clear locks
-  room.players.forEach((p) => {
-    p.lastWord = p.lockedWord;
-    p.lockedWord = null;
-  });
-
-  if (allSame) {
-    const winningWord = words[0];
-    room.status = "finished";
-
-    broadcastRoom(room, {
-      type: "round_result",
-      match: true,
-      word: winningWord,
-      room: serializeRoom(room)
-    });
-  } else {
-    room.round += 1;
-
-    broadcastRoom(room, {
-      type: "round_result",
-      match: false,
-      words: room.players.map((p, idx) => ({
-        id: p.id,
-        word: words[idx]
-      })),
-      room: serializeRoom(room)
-    });
-  }
-}
-
-function handleLockWord(client, word) {
-  const roomCode = client.roomCode;
-  if (!roomCode || !rooms.has(roomCode)) return;
-  const room = rooms.get(roomCode);
-
-  if (room.status !== "playing") return;
-
-  const player = room.players.find((p) => p.id === client.id);
-  if (!player) return;
-
-  if (!word || typeof word !== "string") return;
-  const clean = word.trim().slice(0, 20); // hard-limit to 20 chars
-  if (!clean) return;
-
-  player.lockedWord = clean;
-
-  broadcastRoomUpdate(room);
-
-  // If everyone locked, resolve round
-  if (room.players.every((p) => p.lockedWord && p.lockedWord.length > 0)) {
-    resolveRound(room);
-  }
-}
-
-function resetRoom(room) {
-  room.round = 1;
-  room.status = "playing";
-  room.players.forEach((p) => {
-    p.lockedWord = null;
-    p.lastWord = null;
-  });
   broadcastRoomUpdate(room);
 }
 
 function removeClientFromRoom(client) {
-  const roomCode = client.roomCode;
-  if (!roomCode || !rooms.has(roomCode)) return;
-  const room = rooms.get(roomCode);
+  const room = getRoomFor(client);
+  if (!room) {
+    client.roomCode = null;
+    return;
+  }
 
-  room.players = room.players.filter((p) => p.id !== client.id);
+  room.players = room.players.filter(p => p.id !== client.id);
 
   if (room.players.length === 0) {
-    rooms.delete(roomCode);
+    rooms.delete(room.code);
   } else {
-    // If host left, promote first remaining player as host
     if (room.hostId === client.id) {
-      room.hostId = room.players[0].id;
+      room.hostId = room.players[0].id; // promote first player as host
     }
     broadcastRoomUpdate(room);
   }
@@ -188,55 +119,86 @@ function removeClientFromRoom(client) {
   client.roomCode = null;
 }
 
-function handleDisconnect(ws) {
-  const client = clients.get(ws);
-  if (!client) return;
+// ---------------------- GAME LOGIC ----------------------------
 
-  removeClientFromRoom(client);
-  clients.delete(ws);
+function resolveRound(room) {
+  const words = room.players.map(p => p.lockedWord || "");
+  if (!words.every(w => w.length > 0)) return; // not everyone locked yet
+
+  const normalized = words.map(w => w.trim().toLowerCase());
+  const allSame = normalized.every(w => w === normalized[0]);
+
+  // Move lockedWord -> lastWord for bubbles
+  room.players.forEach((p, i) => {
+    p.lastWord = words[i];
+    p.lockedWord = null;
+  });
+
+  if (allSame) {
+    room.status = "finished";
+    broadcast(room, {
+      type: "round_result",
+      match: true,
+      word: words[0],
+      room: serializeRoom(room)
+    });
+  } else {
+    room.round += 1;
+    broadcast(room, {
+      type: "round_result",
+      match: false,
+      words: room.players.map((p) => ({
+        id: p.id,
+        word: p.lastWord || ""
+      })),
+      room: serializeRoom(room)
+    });
+  }
 }
 
-// ---- WebSocket handling ----
+// ---------------------- WEBSOCKET EVENTS ----------------------
 
 wss.on("connection", (ws) => {
   const client = {
     id: nextClientId++,
-    ws,
     name: null,
-    roomCode: null
+    roomCode: null,
+    ws
   };
   clients.set(ws, client);
 
   send(ws, { type: "welcome", clientId: client.id });
 
-  ws.on("message", (msg) => {
-    let data;
+  ws.on("message", (buffer) => {
+    let msg;
     try {
-      data = JSON.parse(msg.toString());
-    } catch (e) {
+      msg = JSON.parse(buffer.toString());
+    } catch {
       return;
     }
 
-    const type = data.type;
+    const type = msg.type;
 
+    // ---- set_name ----
     if (type === "set_name") {
-      client.name = (data.name || "").trim().slice(0, 24);
-      if (!client.name) client.name = `Player ${client.id}`;
+      const name = (msg.name || "").trim().slice(0, 24);
+      if (!name) return;
+      client.name = name;
 
-      if (client.roomCode && rooms.has(client.roomCode)) {
-        const room = rooms.get(client.roomCode);
-        const player = room.players.find((p) => p.id === client.id);
-        if (player) {
-          player.name = client.name;
-          broadcastRoomUpdate(room);
-        }
+      const room = getRoomFor(client);
+      if (room) {
+        const p = room.players.find(x => x.id === client.id);
+        if (p) p.name = client.name;
+        broadcastRoomUpdate(room);
       }
+      return;
     }
 
+    // ---- create_room ----
     if (type === "create_room") {
-      const playerCount = Number(data.playerCount);
-      if (![2, 3, 4].includes(playerCount)) {
-        return send(ws, { type: "error", message: "Invalid player count." });
+      const count = Number(msg.playerCount) || 2;
+      if (count < 2 || count > 4) {
+        return send(ws, { type: "error", message: "Player count must be 2–4." });
       }
       if (client.roomCode) {
         return send(ws, { type: "error", message: "You are already in a room." });
@@ -246,10 +208,10 @@ wss.on("connection", (ws) => {
       const room = {
         code,
         hostId: client.id,
-        targetPlayers: playerCount,
-        players: [],
+        status: "lobby",
         round: 1,
-        status: "lobby"
+        targetPlayers: count,
+        players: []
       };
       rooms.set(code, room);
 
@@ -261,10 +223,12 @@ wss.on("connection", (ws) => {
         roomCode: code,
         youId: client.id
       });
+      return;
     }
 
+    // ---- join_room ----
     if (type === "join_room") {
-      const code = (data.roomCode || "").toUpperCase();
+      const code = (msg.roomCode || "").trim().toUpperCase();
       if (!rooms.has(code)) {
         return send(ws, { type: "error", message: "Room not found." });
       }
@@ -273,8 +237,7 @@ wss.on("connection", (ws) => {
       if (client.roomCode && client.roomCode !== code) {
         return send(ws, { type: "error", message: "You are already in another room." });
       }
-
-      if (room.players.length >= room.targetPlayers) {
+      if (room.players.length >= (room.targetPlayers || 4)) {
         return send(ws, { type: "error", message: "Room is full." });
       }
 
@@ -286,57 +249,100 @@ wss.on("connection", (ws) => {
         roomCode: code,
         youId: client.id
       });
+      return;
     }
 
+    // ---- start_game ----
     if (type === "start_game") {
-      const roomCode = client.roomCode;
-      if (!roomCode || !rooms.has(roomCode)) return;
-      const room = rooms.get(roomCode);
+      const room = getRoomFor(client);
+      if (!room) return;
 
       if (room.hostId !== client.id) {
         return send(ws, { type: "error", message: "Only the host can start the game." });
       }
       if (room.status !== "lobby") return;
-      if (room.players.length !== room.targetPlayers) {
-        return send(ws, { type: "error", message: "Wait for all players to join." });
+      if (room.players.length < 2) {
+        return send(ws, { type: "error", message: "Need at least 2 players to start." });
       }
 
       room.status = "playing";
       room.round = 1;
       room.players.forEach((p) => {
         p.lockedWord = null;
-        p.lastWord = null;
+        p.lastWord   = null;
       });
-      broadcastRoomUpdate(room);
+
+      broadcast(room, {
+        type: "start_next_round",
+        room: serializeRoom(room)
+      });
+      return;
     }
 
+    // ---- lock_word ----
     if (type === "lock_word") {
-      handleLockWord(client, data.word);
-    }
+      const room = getRoomFor(client);
+      if (!room || room.status !== "playing") return;
 
-    if (type === "play_again") {
-      const roomCode = client.roomCode;
-      if (!roomCode || !rooms.has(roomCode)) return;
-      const room = rooms.get(roomCode);
-      if (room.status !== "finished") return;
-      if (room.hostId !== client.id) {
-        return send(ws, { type: "error", message: "Only the host can start the next round." });
+      const value = (msg.word || "").trim();
+      if (!value) return;
+
+      const p = room.players.find(x => x.id === client.id);
+      if (!p) return;
+
+      p.lockedWord = value.slice(0, 32);
+
+      const allLocked = room.players.every(x => x.lockedWord && x.lockedWord.length > 0);
+      if (allLocked) {
+        resolveRound(room);
+      } else {
+        broadcastRoomUpdate(room);
       }
-      resetRoom(room);
+      return;
     }
 
+    // ---- play_again (NEW GAME) ----
+    if (type === "play_again") {
+      const room = getRoomFor(client);
+      if (!room) return;
+
+      if (room.hostId !== client.id) {
+        return send(ws, { type: "error", message: "Only the host can start a new game." });
+      }
+
+      // Treat play_again as "new game" – reset to round 1, clear lastWord
+      room.status = "playing";
+      room.round  = 1;
+      room.players.forEach((p) => {
+        p.lockedWord = null;
+        p.lastWord   = null;
+      });
+
+      broadcast(room, {
+        type: "start_next_round",
+        room: serializeRoom(room)
+      });
+      return;
+    }
+
+    // ---- leave_room ----
     if (type === "leave_room") {
       removeClientFromRoom(client);
       send(ws, { type: "left_room" });
+      return;
     }
   });
 
   ws.on("close", () => {
-    handleDisconnect(ws);
+    const c = clients.get(ws);
+    if (c) removeClientFromRoom(c);
+    clients.delete(ws);
   });
 });
 
+// ---------------------- START SERVER --------------------------
+
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-  console.log(`MindMerge online server listening on http://localhost:${PORT}`);
+  console.log(`Wordynx server running on http://localhost:${PORT}`);
 });

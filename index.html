@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<title>MindMerge</title>
+<title>Wordynx</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <style>
   :root {
@@ -60,7 +60,7 @@
 
   .game-subtitle {
     margin-top: 3px;
-    font-size: 0.95rem; /* a bit smaller so it fits better */
+    font-size: 0.95rem;
     color: #e0e7ff;
     font-weight: 700;
   }
@@ -315,7 +315,7 @@
 
   .prev-words-row {
     display: flex;
-    flex-wrap: wrap; /* wraps only if needed */
+    flex-wrap: wrap;
     gap: 14px;
     justify-content: center;
   }
@@ -350,7 +350,7 @@
     font-style: italic;
   }
 
-  /* Input bubble at bottom center */
+  /* Input bubble at bottom */
 
   .input-bubble-wrapper {
     margin-top: auto;
@@ -393,7 +393,7 @@
     margin-top: 0;
     border-radius: 999px;
     border: none;
-    background: transparent; /* no darker inner layer */
+    background: transparent;
     padding: 9px 12px;
     color: #f9fafb;
     box-shadow: none;
@@ -523,7 +523,7 @@
 <div class="app">
   <div class="page-header">
     <div class="header-inner">
-      <div class="game-title"><span>MINDMERGE</span></div>
+      <div class="game-title"><span>WORDYNX</span></div>
       <div class="game-subtitle">Connect your minds and land on the same word.</div>
     </div>
   </div>
@@ -688,10 +688,10 @@
   const setupHostPanel = document.getElementById("setupHostPanel");
   const setupJoinPanel = document.getElementById("setupJoinPanel");
 
-  const btnGoHost  = document.getElementById("btnGoHost");
-  const btnGoJoin  = document.getElementById("btnGoJoin");
-  const hostBackBtn= document.getElementById("hostBackBtn");
-  const joinBackBtn= document.getElementById("joinBackBtn");
+  const btnGoHost   = document.getElementById("btnGoHost");
+  const btnGoJoin   = document.getElementById("btnGoJoin");
+  const hostBackBtn = document.getElementById("hostBackBtn");
+  const joinBackBtn = document.getElementById("joinBackBtn");
 
   const hostNameInput   = document.getElementById("hostNameInput");
   const hostPlayerCount = document.getElementById("hostPlayerCount");
@@ -762,9 +762,8 @@
   let clientId = null;
   let youId    = null;
   let currentRoom = null;
-  let roundHistory = [];   // [{round, words:[{id,word}]}]
-  let localRound   = 0;
-  let inWinPhase   = false;
+  let roundHistory   = [];   // [{round, words:[{id,word}]}]
+  let localRound     = 0;
   let lastRoundWords = null; // previous round's words for bubbles
 
   function setGameMessage(text) {
@@ -792,20 +791,19 @@
   function sendToServer(payload) {
     ensureSocket();
     if (!socket || socket.readyState !== WebSocket.OPEN) {
-      setGameError("Not connected yet. Wait a moment then try again.");
-      return;
+      // it will still send as soon as it opens, but this keeps errors minimal
     }
     socket.send(JSON.stringify(payload));
   }
 
   /* ---------- Win history ---------- */
 
-  function renderWinHistoryTimeline() {
+  function renderWinHistory(room) {
     winLogBody.innerHTML = "";
-    if (!currentRoom || roundHistory.length === 0) {
+    if (!room || roundHistory.length === 0) {
       const div = document.createElement("div");
       div.className = "small-note";
-      div.textContent = "No rounds recorded.";
+      div.textContent = "No rounds recorded yet.";
       winLogBody.appendChild(div);
       return;
     }
@@ -823,7 +821,7 @@
       wordsDiv.className = "round-words";
 
       currentRoom.players.forEach((p) => {
-        const w = entry.words.find((x) => x.id === p.id);
+        const w = entry.words.find(x => x.id === p.id);
         if (!w) return;
         const chip = document.createElement("span");
         chip.className = "history-chip";
@@ -908,13 +906,13 @@
   function renderRoom(room) {
     currentRoom = room;
     if (!room) {
-      playersList.innerHTML = "";
+      playersList.innerHTML   = "";
       prevWordsSection.style.display = "none";
-      yourArea.style.display = "none";
+      yourArea.style.display  = "none";
       hostControls.style.display = "none";
       startGameWrapper.style.display = "none";
       roomCodeDisplay.textContent = "";
-      roomCodeSmall.textContent = "";
+      roomCodeSmall.textContent   = "";
       return;
     }
 
@@ -944,7 +942,7 @@
       roomCodeSmall.textContent = "";
     }
 
-    if (room.status === "playing") {
+  if (room.status === "playing") {
       roomCodeDisplay.textContent = "";
       playersSection.style.display = "none";
       renderPrevWords(room);   // uses lastRoundWords or "None yet"
@@ -996,56 +994,26 @@
 
     if (type === "room_created") {
       youId = data.youId;
-      setupError.textContent     = "";
-      setupErrorJoin.textContent = "";
-      roundHistory = [];
-      localRound   = 0;
-      inWinPhase   = false;
+      roundHistory   = [];
+      localRound     = 0;
       lastRoundWords = null;
       showScreen("game");
       renderRoom(data.room);
-      setGameMessage("");
       return;
     }
 
     if (type === "joined_room") {
       youId = data.youId;
-      setupError.textContent     = "";
-      setupErrorJoin.textContent = "";
-      roundHistory = [];
-      localRound   = 0;
-      inWinPhase   = false;
+      roundHistory   = [];
+      localRound     = 0;
       lastRoundWords = null;
       showScreen("game");
       renderRoom(data.room);
-      setGameMessage("");
       return;
     }
 
     if (type === "room_update") {
-      const prevStatus = currentRoom ? currentRoom.status : null;
       renderRoom(data.room);
-
-      if (prevStatus === "finished" && data.room.status === "playing" && inWinPhase) {
-        inWinPhase   = false;
-        // keep lastRoundWords so bubbles show previous round
-        localRound   = 0;
-        showScreen("game");
-        setGameMessage("New round started. Think of a fresh word and lock in.");
-        yourInput.value    = "";
-        yourInput.disabled = false;
-        lockBtn.disabled   = false;
-      } else {
-        const room = data.room;
-        const me   = room.players.find((p) => p.id === youId);
-        if (room.status === "playing") {
-          setGameMessage(me && me.locked
-            ? "You locked in. Waiting for others…"
-            : "Think of a word and lock in.");
-        } else {
-          setGameMessage("");
-        }
-      }
       return;
     }
 
@@ -1055,16 +1023,15 @@
 
       if (data.match) {
         const winningWord = data.word || "";
-        const words = room.players.map((p) => ({
+        const words = room.players.map(p => ({
           id: p.id,
           word: winningWord
         }));
         roundHistory.push({ round: localRound, words });
-        lastRoundWords = words;  // still used for bubbles if needed
+        lastRoundWords = words;
 
-        inWinPhase = true;
         winWordEl.textContent = winningWord.toUpperCase();
-        renderWinHistoryTimeline();
+        renderWinHistory(room);
 
         const isHost = youId === room.hostId;
         if (isHost) {
@@ -1077,15 +1044,15 @@
 
         showScreen("win");
       } else {
-        const words = (data.words || []).map((w) => ({
+        const words = (data.words || []).map(w => ({
           id: w.id,
           word: w.word
         }));
         roundHistory.push({ round: localRound, words });
-        lastRoundWords = words;   // *** key: store for bubble display
+        lastRoundWords = words;
 
-        renderRoom(room);         // repaint playing state; bubbles use lastRoundWords
-        setGameMessage("");       // no text line, bubbles are the reveal
+        renderRoom(room);
+        setGameMessage("");
         yourInput.disabled = false;
         lockBtn.disabled   = false;
         yourInput.value    = "";
@@ -1094,11 +1061,28 @@
       return;
     }
 
+    if (type === "start_next_round") {
+      const room = data.room;
+      currentRoom = room;
+
+      // NEW game: reset local state & bubbles
+      roundHistory   = [];
+      localRound     = 0;
+      lastRoundWords = null;
+
+      showScreen("game");
+      renderRoom(room);
+      setGameMessage("New game started. Think of a word and lock in.");
+      yourInput.value    = "";
+      yourInput.disabled = false;
+      lockBtn.disabled   = false;
+      return;
+    }
+
     if (type === "left_room") {
       currentRoom   = null;
       roundHistory  = [];
       localRound    = 0;
-      inWinPhase    = false;
       lastRoundWords = null;
       setGameMessage("");
       setGameError("");
@@ -1160,9 +1144,7 @@
   });
 
   yourInput.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") {
-      lockBtn.click();
-    }
+    if (e.key === "Enter") lockBtn.click();
   });
 
   leaveRoomBtn.addEventListener("click", () => {
