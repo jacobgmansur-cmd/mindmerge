@@ -339,12 +339,18 @@
     text-align: center;
   }
   .prev-word {
-    font-family: "Georgia", serif;
-    font-size: 1.8rem;
-    font-weight: 700;
-    min-height: 1.6em;
-    text-align: center;
-  }
+  font-family: "Georgia", serif;
+  font-size: 1.8rem;
+  font-weight: 700;
+  min-height: 1.6em;
+  text-align: center;
+
+  /* NEW: keep long words inside the bubble */
+  max-width: 100%;
+  overflow-wrap: break-word;   /* modern way to break long words */
+  word-wrap: break-word;       /* legacy support */
+  word-break: break-word;      /* extra safety */
+}
   .prev-word.empty {
     color: #6b7280;
     font-style: italic;
