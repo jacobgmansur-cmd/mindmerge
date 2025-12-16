@@ -177,28 +177,31 @@
     box-shadow: 0 10px 22px rgba(15,23,42,0.8);
   }
 
-  /* SETUP SCREEN */
+  /* SETUP (HOME) SCREEN */
 
   .title-main {
     flex: 1;
     display: flex;
+    flex-direction: column;
     align-items: center;
-    justify-content: center;
+    justify-content: center; /* center around middle */
+    gap: 28px;
   }
 
-  .title-buttons {
+  .title-buttons-group {
     max-width: 420px;
     width: 100%;
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 10px;
   }
 
-  .title-buttons .btn {
-    font-size: 1.1rem;
-    padding: 13px 18px;
+  .title-buttons-group .btn {
+    font-size: 1.05rem;
+    padding: 12px 18px;
   }
 
+  /* Host / Join setup panels (hidden by default) */
   .setup-panel {
     flex: 1;
     display: none;
@@ -212,33 +215,31 @@
   .setup-card {
     max-width: 420px;
     width: 100%;
+    padding: 24px 0 24px;
   }
 
+  /* Form column layout for host/join forms */
   .field-column {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 18px;           /* space between rows */
+    margin-top: 10px;
+    margin-bottom: 20px;
   }
 
+  /* Each label + input group */
   .field-row {
     display: flex;
     flex-direction: column;
     gap: 6px;
   }
 
-  .field-row label {
-    font-size: 0.95rem;
-    color: #e5e7eb;
+  /* Extra spacing above Back link */
+  .setup-card .btn-ghost {
+    margin-top: 12px;
   }
 
-  #setupError,
-  #setupErrorJoin {
-    margin-top: 6px;
-    font-size: 0.9rem;
-    color: #fecaca;
-  }
-
-  /* GAME SCREEN – LOBBY & PLAY */
+  /* GAME LAYOUT (ONLINE + LOCAL) */
 
   .game-main {
     flex: 1;
@@ -306,7 +307,7 @@
     color: #facc15;
   }
 
-  /* Playing: previous words row */
+  /* Previous words row (shared) */
 
   .prev-words-section {
     display: none;
@@ -339,24 +340,22 @@
     text-align: center;
   }
   .prev-word {
-  font-family: "Georgia", serif;
-  font-size: 1.8rem;
-  font-weight: 700;
-  min-height: 1.6em;
-  text-align: center;
-
-  /* NEW: keep long words inside the bubble */
-  max-width: 100%;
-  overflow-wrap: break-word;   /* modern way to break long words */
-  word-wrap: break-word;       /* legacy support */
-  word-break: break-word;      /* extra safety */
-}
+    font-family: "Georgia", serif;
+    font-size: 1.8rem;
+    font-weight: 700;
+    min-height: 1.6em;
+    text-align: center;
+    max-width: 100%;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    word-break: break-word;
+  }
   .prev-word.empty {
     color: #6b7280;
     font-style: italic;
   }
 
-  /* Input bubble at bottom */
+  /* Input bubble (shared) */
 
   .input-bubble-wrapper {
     margin-top: auto;
@@ -394,7 +393,8 @@
     color: #a7f3d0;
   }
 
-  #yourInput {
+  #yourInput,
+  #localInput {
     flex: 1;
     margin-top: 0;
     border-radius: 999px;
@@ -405,20 +405,19 @@
     box-shadow: none;
   }
 
-  #lockBtn {
+  #lockBtn,
+  #localLockBtn {
     flex-shrink: 0;
   }
 
-  #gameMessage {
+  #gameMessage,
+  #gameError {
     margin-top: 10px;
     font-size: 0.95rem;
     text-align: center;
   }
   #gameError {
-    margin-top: 4px;
-    font-size: 0.9rem;
     color: #fecaca;
-    text-align: center;
   }
 
   .game-footer {
@@ -436,7 +435,15 @@
     opacity: 0.8;
   }
 
-  /* WIN SCREEN */
+  /* Local one-device text / message */
+
+  .local-message {
+    text-align: center;
+    margin-top: 8px;
+    font-size: 0.9rem;
+  }
+
+  /* WIN SCREEN (online + local) */
 
   .win-layout {
     flex: 1;
@@ -534,11 +541,20 @@
     </div>
   </div>
 
-  <!-- SCREEN: SETUP (TITLE + HOST/JOIN PANELS) -->
+  <!-- SCREEN: SETUP (HOME) -->
   <div id="screenSetup" class="screen active">
     <div class="screen-inner">
       <div class="title-main" id="setupMain">
-        <div class="title-buttons">
+        <!-- Top group: play on one device + AI placeholder -->
+        <div class="title-buttons-group">
+          <button class="btn btn-full" id="btnLocal">Play on one device</button>
+          <button class="btn btn-full btn-secondary" id="btnLocalAI" disabled>
+            Play against AI (coming soon)
+          </button>
+        </div>
+
+        <!-- Second group: online host/join -->
+        <div class="title-buttons-group">
           <button class="btn btn-full" id="btnGoHost">Host a room</button>
           <button class="btn btn-full btn-secondary" id="btnGoJoin">Join a room</button>
         </div>
@@ -588,7 +604,7 @@
     </div>
   </div>
 
-  <!-- SCREEN: GAME -->
+  <!-- SCREEN: GAME (ONLINE MULTI-DEVICE) -->
   <div id="screenGame" class="screen">
     <div class="screen-inner">
       <div class="game-main">
@@ -604,7 +620,7 @@
             <div class="players-lobby" id="playersList"></div>
           </div>
 
-          <!-- previous words (playing only; bubbles in upper-middle) -->
+          <!-- previous words (playing only) -->
           <div id="prevWordsSection" class="prev-words-section">
             <div class="prev-words-row" id="prevWordsRow"></div>
           </div>
@@ -641,7 +657,74 @@
     </div>
   </div>
 
-  <!-- SCREEN: WIN -->
+  <!-- SCREEN: LOCAL ONE-DEVICE MODE -->
+  <div id="screenLocal" class="screen">
+    <div class="screen-inner">
+      <div class="game-main">
+        <div class="game-body">
+          <!-- previous words for Player 1 / Player 2 -->
+          <div class="prev-words-section" style="display:block; margin-top:15vh;">
+            <div class="prev-words-row">
+              <div class="prev-word-card">
+                <div class="prev-word-label">Player 1</div>
+                <div class="prev-word prev-word-empty" id="localPrevP1">None yet</div>
+              </div>
+              <div class="prev-word-card">
+                <div class="prev-word-label">Player 2</div>
+                <div class="prev-word prev-word-empty" id="localPrevP2">None yet</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- input bubble, identical structure to online -->
+          <div class="input-bubble-wrapper" id="localArea" style="display:flex;">
+            <div style="width:100%; max-width:560px;">
+              <div class="round-pill">
+                <span class="round-pill-inner">
+                  Round <span id="localRoundBubble">1</span>
+                </span>
+              </div>
+              <div class="input-bubble">
+                <input id="localInput" type="password" maxlength="20" autocomplete="off" />
+                <button class="btn" id="localLockBtn">Lock In</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="local-message" id="localMessage"></div>
+
+          <div class="game-footer">
+            <button class="leave-pill" id="localBackBtn">← Back to title</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN: LOCAL WIN (ONE DEVICE) -->
+  <div id="screenLocalWin" class="screen">
+    <div class="screen-inner">
+      <div class="win-layout">
+        <div>
+          <div class="win-word-main" id="localWinWord"></div>
+          <div class="win-note">
+            You both landed on the same word. Here's your round-by-round history.
+          </div>
+
+          <div class="win-actions">
+            <button class="btn btn-full" id="localWinPlayAgainBtn">Start next game (same device)</button>
+            <button class="btn btn-secondary btn-full" id="localWinBackBtn">Back to title</button>
+          </div>
+        </div>
+
+        <div>
+          <div class="win-log-body" id="localWinLogBody"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN: ONLINE WIN -->
   <div id="screenWin" class="screen">
     <div class="screen-inner">
       <div class="win-layout">
@@ -669,23 +752,26 @@
       </div>
     </div>
   </div>
-
-</div>
-
-<script>
+    <script>
   /* ---------- Screen helpers ---------- */
 
-  const screenSetup = document.getElementById("screenSetup");
-  const screenGame  = document.getElementById("screenGame");
-  const screenWin   = document.getElementById("screenWin");
+  const screenSetup    = document.getElementById("screenSetup");
+  const screenGame     = document.getElementById("screenGame");
+  const screenLocal    = document.getElementById("screenLocal");
+  const screenLocalWin = document.getElementById("screenLocalWin");
+  const screenWin      = document.getElementById("screenWin");
 
   function showScreen(which) {
     screenSetup.classList.remove("active");
     screenGame.classList.remove("active");
+    screenLocal.classList.remove("active");
+    screenLocalWin.classList.remove("active");
     screenWin.classList.remove("active");
-    if (which === "setup") screenSetup.classList.add("active");
-    if (which === "game")  screenGame.classList.add("active");
-    if (which === "win")   screenWin.classList.add("active");
+    if (which === "setup")    screenSetup.classList.add("active");
+    if (which === "game")     screenGame.classList.add("active");
+    if (which === "local")    screenLocal.classList.add("active");
+    if (which === "localWin") screenLocalWin.classList.add("active");
+    if (which === "win")      screenWin.classList.add("active");
   }
 
   /* ---------- Title: main / host / join panels ---------- */
@@ -694,10 +780,12 @@
   const setupHostPanel = document.getElementById("setupHostPanel");
   const setupJoinPanel = document.getElementById("setupJoinPanel");
 
-  const btnGoHost   = document.getElementById("btnGoHost");
-  const btnGoJoin   = document.getElementById("btnGoJoin");
-  const hostBackBtn = document.getElementById("hostBackBtn");
-  const joinBackBtn = document.getElementById("joinBackBtn");
+  const btnLocal   = document.getElementById("btnLocal");
+  const btnLocalAI = document.getElementById("btnLocalAI"); // placeholder
+  const btnGoHost  = document.getElementById("btnGoHost");
+  const btnGoJoin  = document.getElementById("btnGoJoin");
+  const hostBackBtn= document.getElementById("hostBackBtn");
+  const joinBackBtn= document.getElementById("joinBackBtn");
 
   const hostNameInput   = document.getElementById("hostNameInput");
   const hostPlayerCount = document.getElementById("hostPlayerCount");
@@ -732,28 +820,177 @@
   hostBackBtn.addEventListener("click", showSetupMain);
   joinBackBtn.addEventListener("click", showSetupMain);
 
-  /* ---------- Game screen refs ---------- */
+  // AI button is a visual placeholder only for now
+  btnLocalAI.addEventListener("click", () => {
+    // intentionally does nothing (disabled in HTML)
+  });
 
+  /* ---------- Local (one-device) mode ---------- */
+
+  const localPrevP1       = document.getElementById("localPrevP1");
+  const localPrevP2       = document.getElementById("localPrevP2");
+  const localRoundBubble  = document.getElementById("localRoundBubble");
+  const localInput        = document.getElementById("localInput");
+  const localLockBtn      = document.getElementById("localLockBtn");
+  const localMessage      = document.getElementById("localMessage");
+  const localBackBtn      = document.getElementById("localBackBtn");
+
+  const localWinWord       = document.getElementById("localWinWord");
+  const localWinLogBody    = document.getElementById("localWinLogBody");
+  const localWinPlayAgain  = document.getElementById("localWinPlayAgainBtn");
+  const localWinBackBtn    = document.getElementById("localWinBackBtn");
+
+  let localRound    = 1;
+  let localLast     = { p1: null, p2: null };
+  let localHistory  = []; // [{round, p1, p2}]
+  let localCurrentPlayer = 1;
+  let localTempWord = null;
+
+  function setLocalPrevWord(el, word) {
+    if (!word) {
+      el.textContent = "None yet";
+      el.classList.add("empty");
+    } else {
+      el.textContent = word.toUpperCase();
+      el.classList.remove("empty");
+    }
+  }
+
+  function updateLocalUI(message) {
+    localRoundBubble.textContent = localRound;
+    setLocalPrevWord(localPrevP1, localLast.p1);
+    setLocalPrevWord(localPrevP2, localLast.p2);
+    if (message !== undefined) {
+      localMessage.textContent = message;
+    }
+    localInput.value = "";
+    localInput.disabled = false;
+    localLockBtn.disabled = false;
+  }
+
+  function resetLocalGame() {
+    localRound   = 1;
+    localLast    = { p1: null, p2: null };
+    localHistory = [];
+    localCurrentPlayer = 1;
+    localTempWord = null;
+    updateLocalUI("Player 1: type a word and tap Lock In.");
+  }
+
+  localLockBtn.addEventListener("click", () => {
+    const raw = localInput.value.trim();
+    if (!raw) return;
+    const word = raw.slice(0, 20);
+
+    if (localCurrentPlayer === 1) {
+      localTempWord = word;
+      localCurrentPlayer = 2;
+      updateLocalUI("Pass the device to Player 2.");
+    } else {
+      // Player 2 entered word; resolve round
+      localLast = { p1: localTempWord, p2: word };
+      localHistory.push({ round: localRound, p1: localTempWord, p2: word });
+
+      const match = localTempWord.toLowerCase() === word.toLowerCase();
+      if (match) {
+        // Show local win screen
+        localWinWord.textContent = word.toUpperCase();
+        renderLocalWinHistory();
+        showScreen("localWin");
+      } else {
+        localRound += 1;
+        localCurrentPlayer = 1;
+        localTempWord = null;
+        updateLocalUI("No match. Use those as your next clue.");
+        localInput.focus();
+      }
+    }
+  });
+
+  localInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") localLockBtn.click();
+  });
+
+  function renderLocalWinHistory() {
+    localWinLogBody.innerHTML = "";
+    if (!localHistory.length) {
+      const div = document.createElement("div");
+      div.className = "small-note";
+      div.textContent = "No rounds recorded.";
+      localWinLogBody.appendChild(div);
+      return;
+    }
+
+    localHistory.forEach(entry => {
+      const block = document.createElement("div");
+      block.className = "round-block";
+
+      const title = document.createElement("div");
+      title.className = "round-title";
+      title.textContent = `Round ${entry.round}`;
+      block.appendChild(title);
+
+      const wordsDiv = document.createElement("div");
+      wordsDiv.className = "round-words";
+
+      const chip1 = document.createElement("span");
+      chip1.className = "history-chip";
+      chip1.textContent = `P1: ${entry.p1.toUpperCase()}`;
+      wordsDiv.appendChild(chip1);
+
+      const chip2 = document.createElement("span");
+      chip2.className = "history-chip";
+      chip2.textContent = `P2: ${entry.p2.toUpperCase()}`;
+      wordsDiv.appendChild(chip2);
+
+      block.appendChild(wordsDiv);
+      localWinLogBody.appendChild(block);
+    });
+  }
+
+  localBackBtn.addEventListener("click", () => {
+    showSetupMain();
+    showScreen("setup");
+  });
+
+  localWinPlayAgain.addEventListener("click", () => {
+    resetLocalGame();
+    showScreen("local");
+  });
+
+  localWinBackBtn.addEventListener("click", () => {
+    showSetupMain();
+    showScreen("setup");
+  });
+
+  btnLocal.addEventListener("click", () => {
+    resetLocalGame();
+    showScreen("local");
+  });
+  </script>
+    <script>
+  /* ---------- ONLINE (multi-device) state & behavior ---------- */
+
+  // DOM references for online mode
   const roomCodeDisplay    = document.getElementById("roomCodeDisplay");
   const roomCodeSmall      = document.getElementById("roomCodeSmall");
-  const roundDisplayBubble = document.getElementById("roundDisplayBubble");
-  const playersSection     = document.getElementById("playersSection");
+  const playersSectionEl   = document.getElementById("playersSection");
   const playersList        = document.getElementById("playersList");
   const prevWordsSection   = document.getElementById("prevWordsSection");
   const prevWordsRow       = document.getElementById("prevWordsRow");
   const yourArea           = document.getElementById("yourArea");
   const yourInput          = document.getElementById("yourInput");
   const lockBtn            = document.getElementById("lockBtn");
-  const gameMessage        = document.getElementById("gameMessage");
-  const gameError          = document.getElementById("gameError");
   const hostControls       = document.getElementById("hostControls");
   const hostHint           = document.getElementById("hostHint");
-  const leaveRoomBtn       = document.getElementById("leaveRoomBtn");
   const startGameWrapper   = document.getElementById("startGameWrapper");
   const startGameBtn       = document.getElementById("startGameBtn");
+  const leaveRoomBtn       = document.getElementById("leaveRoomBtn");
+  const roundDisplayBubble = document.getElementById("roundDisplayBubble");
+  const gameMessage        = document.getElementById("gameMessage");
+  const gameError          = document.getElementById("gameError");
 
-  /* ---------- Win screen refs ---------- */
-
+  // Online win screen
   const winWordEl       = document.getElementById("winWord");
   const winLogBody      = document.getElementById("winLogBody");
   const winActionsHost  = document.getElementById("winActionsHost");
@@ -762,15 +999,14 @@
   const winLeaveHostBtn = document.getElementById("winLeaveRoomBtnHost");
   const winLeaveGuestBtn= document.getElementById("winLeaveRoomBtnGuest");
 
-  /* ---------- WebSocket + state ---------- */
-
+  // WebSocket + room state
   let socket;
   let clientId = null;
   let youId    = null;
   let currentRoom = null;
-  let roundHistory   = [];   // [{round, words:[{id,word}]}]
-  let localRound     = 0;
-  let lastRoundWords = null; // previous round's words for bubbles
+  let roundHistory       = [];  // [{round, words:[{id,word}]}]
+  let onlineRoundCounter = 0;
+  let lastRoundWords     = null; // previous round's words for bubbles
 
   function setGameMessage(text) {
     gameMessage.textContent = text || "";
@@ -790,59 +1026,40 @@
     });
 
     socket.addEventListener("close", () => {
-      setGameMessage("Disconnected from server. Refresh to reconnect.");
+      if (screenGame.classList.contains("active") || screenWin.classList.contains("active")) {
+        setGameMessage("Disconnected from server. Refresh to reconnect.");
+      }
     });
   }
 
   function sendToServer(payload) {
     ensureSocket();
-    if (!socket || socket.readyState !== WebSocket.OPEN) {
-      // it will still send as soon as it opens, but this keeps errors minimal
-    }
     socket.send(JSON.stringify(payload));
   }
 
-  /* ---------- Win history ---------- */
+  function renderOnlinePlayers(room) {
+    playersList.innerHTML = "";
+    if (!room) return;
 
-  function renderWinHistory(room) {
-    winLogBody.innerHTML = "";
-    if (!room || roundHistory.length === 0) {
+    room.players.forEach((p) => {
       const div = document.createElement("div");
-      div.className = "small-note";
-      div.textContent = "No rounds recorded yet.";
-      winLogBody.appendChild(div);
-      return;
-    }
+      div.className = "player-row";
 
-    roundHistory.forEach((entry) => {
-      const block = document.createElement("div");
-      block.className = "round-block";
-
-      const title = document.createElement("div");
-      title.className = "round-title";
-      title.textContent = `Round ${entry.round}`;
-      block.appendChild(title);
-
-      const wordsDiv = document.createElement("div");
-      wordsDiv.className = "round-words";
-
-      currentRoom.players.forEach((p) => {
-        const w = entry.words.find(x => x.id === p.id);
-        if (!w) return;
-        const chip = document.createElement("span");
-        chip.className = "history-chip";
-        chip.textContent = `${p.name.toUpperCase()}: ${w.word.toUpperCase()}`;
-        wordsDiv.appendChild(chip);
-      });
-
-      block.appendChild(wordsDiv);
-      winLogBody.appendChild(block);
+      const nameEl = document.createElement("div");
+      nameEl.className = "player-name";
+      nameEl.textContent = p.name || `Player ${p.id}`;
+      if (p.id === youId) {
+        const star = document.createElement("span");
+        star.className = "star";
+        star.textContent = " ★";
+        nameEl.appendChild(star);
+      }
+      div.appendChild(nameEl);
+      playersList.appendChild(div);
     });
   }
 
-  /* ---------- Render previous words using lastRoundWords ---------- */
-
-  function renderPrevWords(room) {
+  function renderPrevWordsOnline(room) {
     if (!room || room.status !== "playing") {
       prevWordsSection.style.display = "none";
       prevWordsRow.innerHTML = "";
@@ -882,33 +1099,6 @@
     });
   }
 
-  /* ---------- Render players (lobby) ---------- */
-
-  function renderPlayers(room) {
-    playersList.innerHTML = "";
-    if (!room) return;
-
-    room.players.forEach((p) => {
-      const div = document.createElement("div");
-      div.className = "player-row";
-
-      const nameEl = document.createElement("div");
-      nameEl.className = "player-name";
-      nameEl.textContent = p.name || `Player ${p.id}`;
-      if (p.id === youId) {
-        const star = document.createElement("span");
-        star.className = "star";
-        star.textContent = " ★";
-        nameEl.appendChild(star);
-      }
-      div.appendChild(nameEl);
-
-      playersList.appendChild(div);
-    });
-  }
-
-  /* ---------- Render room ---------- */
-
   function renderRoom(room) {
     currentRoom = room;
     if (!room) {
@@ -926,13 +1116,14 @@
 
     if (room.status === "lobby") {
       roomCodeDisplay.textContent = room.code;
-      playersSection.style.display = "";
-      renderPlayers(room);
+      playersSectionEl.style.display = "";
+      renderOnlinePlayers(room);
       prevWordsSection.style.display = "none";
       yourArea.style.display = "none";
 
       hostControls.style.display = "";
-      const remaining = room.targetPlayers - room.players.length;
+      const target    = room.targetPlayers || room.players.length;
+      const remaining = target - room.players.length;
       if (remaining > 0) {
         hostHint.textContent = isHost
           ? `Waiting for ${remaining} more player${remaining === 1 ? "" : "s"} to join.`
@@ -950,8 +1141,8 @@
 
   if (room.status === "playing") {
       roomCodeDisplay.textContent = "";
-      playersSection.style.display = "none";
-      renderPrevWords(room);   // uses lastRoundWords or "None yet"
+      playersSectionEl.style.display = "none";
+      renderPrevWordsOnline(room);
 
       const youInRoom = room.players.some((p) => p.id === youId);
       if (youInRoom) {
@@ -974,7 +1165,7 @@
     }
 
     if (room.status === "finished") {
-      renderPrevWords(room);
+      renderPrevWordsOnline(room);
       yourArea.style.display = "none";
       roomCodeDisplay.textContent = "";
       roomCodeSmall.textContent   = `Room: ${room.code}`;
@@ -983,7 +1174,41 @@
     roundDisplayBubble.textContent = room.round || 1;
   }
 
-  /* ---------- Handle server messages ---------- */
+  function renderOnlineWinHistory(room) {
+    winLogBody.innerHTML = "";
+    if (!room || roundHistory.length === 0) {
+      const div = document.createElement("div");
+      div.className = "small-note";
+      div.textContent = "No rounds recorded yet.";
+      winLogBody.appendChild(div);
+      return;
+    }
+
+    roundHistory.forEach((entry) => {
+      const block = document.createElement("div");
+      block.className = "round-block";
+
+      const title = document.createElement("div");
+      title.className = "round-title";
+      title.textContent = `Round ${entry.round}`;
+      block.appendChild(title);
+
+      const wordsDiv = document.createElement("div");
+      wordsDiv.className = "round-words";
+
+      currentRoom.players.forEach((p) => {
+        const w = entry.words.find(x => x.id === p.id);
+        if (!w) return;
+        const chip = document.createElement("span");
+        chip.className = "history-chip";
+        chip.textContent = `${p.name.toUpperCase()}: ${w.word.toUpperCase()}`;
+        wordsDiv.appendChild(chip);
+      });
+
+      block.appendChild(wordsDiv);
+      winLogBody.appendChild(block);
+    });
+  }
 
   function handleServerMessage(data) {
     const type = data.type;
@@ -1000,9 +1225,9 @@
 
     if (type === "room_created") {
       youId = data.youId;
-      roundHistory   = [];
-      localRound     = 0;
-      lastRoundWords = null;
+      roundHistory       = [];
+      onlineRoundCounter = 0;
+      lastRoundWords     = null;
       showScreen("game");
       renderRoom(data.room);
       return;
@@ -1010,9 +1235,9 @@
 
     if (type === "joined_room") {
       youId = data.youId;
-      roundHistory   = [];
-      localRound     = 0;
-      lastRoundWords = null;
+      roundHistory       = [];
+      onlineRoundCounter = 0;
+      lastRoundWords     = null;
       showScreen("game");
       renderRoom(data.room);
       return;
@@ -1025,7 +1250,7 @@
 
     if (type === "round_result") {
       const room = data.room;
-      localRound += 1;
+      onlineRoundCounter += 1;
 
       if (data.match) {
         const winningWord = data.word || "";
@@ -1033,11 +1258,11 @@
           id: p.id,
           word: winningWord
         }));
-        roundHistory.push({ round: localRound, words });
+        roundHistory.push({ round: onlineRoundCounter, words });
         lastRoundWords = words;
 
         winWordEl.textContent = winningWord.toUpperCase();
-        renderWinHistory(room);
+        renderOnlineWinHistory(room);
 
         const isHost = youId === room.hostId;
         if (isHost) {
@@ -1054,7 +1279,7 @@
           id: w.id,
           word: w.word
         }));
-        roundHistory.push({ round: localRound, words });
+        roundHistory.push({ round: onlineRoundCounter, words });
         lastRoundWords = words;
 
         renderRoom(room);
@@ -1071,10 +1296,10 @@
       const room = data.room;
       currentRoom = room;
 
-      // NEW game: reset local state & bubbles
-      roundHistory   = [];
-      localRound     = 0;
-      lastRoundWords = null;
+      // NEW game: reset online history and bubbles
+      roundHistory       = [];
+      onlineRoundCounter = 0;
+      lastRoundWords     = null;
 
       showScreen("game");
       renderRoom(room);
@@ -1086,10 +1311,10 @@
     }
 
     if (type === "left_room") {
-      currentRoom   = null;
-      roundHistory  = [];
-      localRound    = 0;
-      lastRoundWords = null;
+      currentRoom       = null;
+      roundHistory      = [];
+      onlineRoundCounter= 0;
+      lastRoundWords    = null;
       setGameMessage("");
       setGameError("");
       showSetupMain();
@@ -1098,7 +1323,7 @@
     }
   }
 
-  /* ---------- Setup actions ---------- */
+  /* ---------- Online: host/join actions ---------- */
 
   hostCreateBtn.addEventListener("click", () => {
     setupError.textContent = "";
@@ -1130,7 +1355,7 @@
     sendToServer({ type: "join_room", roomCode: code });
   });
 
-  /* ---------- Game actions ---------- */
+  /* ---------- Online: gameplay actions ---------- */
 
   startGameBtn.addEventListener("click", () => {
     if (!currentRoom) return;
@@ -1157,7 +1382,7 @@
     sendToServer({ type: "leave_room" });
   });
 
-  /* ---------- Win actions ---------- */
+  /* ---------- Online: win screen actions ---------- */
 
   winStartNextBtn.addEventListener("click", () => {
     if (!currentRoom) return;
@@ -1172,8 +1397,8 @@
     sendToServer({ type: "leave_room" });
   });
 
-  // initial socket connect
+  // Initialise WebSocket connection (safe if server isn't up yet)
   ensureSocket();
-</script>
+  </script>
 </body>
 </html>
